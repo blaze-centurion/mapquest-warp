@@ -8,12 +8,14 @@ import {
 	Grid,
 	Heading,
 	Spinner,
+	useToast,
 } from "@chakra-ui/react";
 
 const FoodDetection = () => {
 	const [file, setFile] = useState(null);
 	const [data, setData] = useState(null);
 	const [loading, setLoading] = useState(true);
+	const toast = useToast();
 
 	const check = async () => {
 		if (!file) return;
@@ -23,7 +25,6 @@ const FoodDetection = () => {
 			const reader = new FileReader();
 			reader.onload = (event) => {
 				const res = event.target.result;
-				console.log(res);
 				resolve(res);
 			};
 			reader.readAsDataURL(file);
@@ -54,8 +55,19 @@ const FoodDetection = () => {
 		})
 			.then((response) => response.json())
 			.then((data) => {
-				console.log("Success:", data);
-				setData(data);
+				if (data.is_plant_probability < 0.2) {
+					toast({
+						title: "Somethin went wrong!",
+						description:
+							"Please upload the image of plant or plant of that fruit.",
+						status: "error",
+						duration: 5000,
+						isClosable: true,
+					});
+				} else {
+					console.log("Success:", data);
+					setData(data);
+				}
 				setLoading(false);
 			})
 			.catch((error) => {
@@ -260,13 +272,14 @@ const FoodDetection = () => {
 							</a>
 						</Text>
 						<Text mt="5px" fontSize="13px" color="whiteAlpha.700">
-							{data.suggestions[0].plant_details.wiki_description.value.length < 200 ? 
-								data.suggestions[0].plant_details.wiki_description.value :
-								data.suggestions[0].plant_details.wiki_description.value.slice(
-									0,
-									200
-								) + "..."}
-							
+							{data.suggestions[0].plant_details.wiki_description
+								.value.length < 200
+								? data.suggestions[0].plant_details
+										.wiki_description.value
+								: data.suggestions[0].plant_details.wiki_description.value.slice(
+										0,
+										200
+								  ) + "..."}
 						</Text>
 					</Box>
 				</>
