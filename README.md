@@ -8,6 +8,9 @@ Mapquest is a website which solves the problems faced by explorers.
 
 https://drive.google.com/file/d/1q_UKUXAhGBXi7esqT9zs_ujZxvVvnovj/view?usp=sharing
 
+## PPT
+https://drive.google.com/file/d/12l3wa7v48y0xewBWn8nrt2nMFb7DytHC/view?usp=sharing
+
 ## Installation
 
 Install MapQuest with npm
