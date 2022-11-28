@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+		<script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+		<link
+			rel="stylesheet"
+			href="https://unpkg.com/accordion-js@3.3.2/dist/accordion.min.css"
+		/>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap"
+			rel="stylesheet"
+		/>
+
+		<script src="https://unpkg.com/accordion-js@3.3.2/dist/accordion.min.js"></script>
+
+		<style>
+			#map {
+				height: 100%;
+			}
+			* {
+				font-family: "Poppins", sans-serif !important;
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				height: 100%;
+				margin: 0;
+				padding: 0;
+			}
+			#curr_loc_btn {
+				position: absolute;
+				bottom: 10px;
+				right: 10px;
+				background-color: transparent;
+				border: none;
+				outline: none;
+				cursor: pointer;
+			}
+			#curr_loc_btn img {
+				width: 25px;
+				height: 25px;
+				filter: invert(1);
+			}
+			#help_btn {
+				position: absolute;
+				bottom: 45px;
+				right: 10px;
+				background-color: transparent;
+				border: none;
+				outline: none;
+				cursor: pointer;
+			}
+			#help_btn img {
+				width: 25px;
+				height: 25px;
+				filter: invert(1);
+			}
+			.container {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100vh;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transform: scale(0);
+				transform-origin: center center;
+				opacity: 0;
+			}
+			.container.active {
+				transform: scale(1);
+				opacity: 1;
+			}
+			.card {
+				background: #fff;
+				width: 95%;
+				height: 90vh;
+				max-height: 80vh;
+				overflow: auto;
+				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+				border-radius: 10px;
+			}
+			.card-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 20px 15px;
+				border-bottom: 1px solid #ddd;
+			}
+			.card-header p {
+				font-weight: 500;
+			}
+			.card-header img {
+				width: 13px;
+				cursor: pointer;
+			}
+			.detail-box {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+				margin: 10px 0;
+				grid-gap: 10px;
+			}
+			.detail-item {
+				padding-left: 20px;
+				font-size: 15px;
+			}
+			.detail-item label {
+				font-size: 12px;
+				color: rgba(0, 0, 0, 0.6);
+			}
+			.accordion-container {
+				margin: 2rem 0;
+			}
+			.ac-header {
+				padding: 2px 5px !important;
+			}
+			.ac-trigger {
+				font-size: 15px !important;
+				font-weight: 500 !important;
+				font-family: "Poppins", sans-serif !important;
+			}
+			.ac-trigger::after {
+				font-size: 20px !important;
+			}
+			.survival_box {
+				min-width: 330px;
+			}
+			.survival_box span {
+				font-size: 18px;
+				margin-top: 10px;
+			}
+			.survival_box h2 {
+				font-weight: 500;
+				font-size: 16px;
+				margin-top: 8px;
+			}
+			.survival_box ol {
+				padding: 10px 15px;
+			}
+			.survival_box ol li {
+				font-size: 14px;
+			}
+			#back_btn {
+				position: absolute;
+				top: 10px;
+				left: 10px;
+				border: 1px solid #ddd;
+				outline: none;
+				background-color: #fff;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: 50%;
+				padding: 8px;
+				cursor: pointer;
+				z-index: 10000;
+			}
+			#back_btn img {
+				width: 17px;
+			}
+
+			@keyframes spinner {
+				0% {
+					transform: translate3d(-50%, -50%, 0) rotate(0deg);
+				}
+				100% {
+					transform: translate3d(-50%, -50%, 0) rotate(360deg);
+				}
+			}
+			.loader::before {
+				animation: 1.5s linear infinite spinner;
+				animation-play-state: inherit;
+				border: solid 4px #cfd0d1;
+				border-bottom-color: #555555;
+				border-radius: 50%;
+				content: "";
+				height: 40px;
+				width: 40px;
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				will-change: transform;
+				z-index: 10000;
+				display: none;
+			}
+			.loader.active::before {
+				display: block;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="loader"></div>
+		<div id="map"></div>
+		<button id="curr_loc_btn">
+			<img src="crosshair.png" />
+		</button>
+		<button id="help_btn">
+			<img src="question.png" />
+		</button>
+		<button id="back_btn">
+			<img src="back.png" />
+		</button>
+
+		<div class="container">
+			<div class="card">
+				<div class="card-header">
+					<p>Information about Location</p>
+					<img src="close.png" alt="" class="close_btn" />
+				</div>
+				<div class="card-body">
+					<div class="detail-box">
+						<div class="detail-item name">
+							<label>Name</label>
+							<p>Name</p>
+						</div>
+						<div class="detail-item region">
+							<label>Region</label>
+							<p>Name</p>
+						</div>
+						<div class="detail-item country">
+							<label>Country</label>
+							<p>Name</p>
+						</div>
+						<div class="detail-item curr_temp">
+							<label>Current Temperature</label>
+							<p>Name</p>
+						</div>
+					</div>
+					<div
+						class="accordion-container"
+						id="accordion-container"
+					></div>
+				</div>
+			</div>
+		</div>
+		<div class="container help-container">
+			<div class="card">
+				<div class="card-header">
+					<p>Help</p>
+					<img src="close.png" alt="" class="help_close_btn" />
+				</div>
+				<div class="card-body help-card-body"></div>
+			</div>
+		</div>
+
+		<script
+			src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFK2tHR6268jRXCcg5u5h0AOMQn-63giY&callback=initMap"
+			defer
+		></script>
+		<script>
+			new Accordion("#accordion-container", {
+				duration: 400,
+				showMultiple: true,
+				onOpen: function (currentElement) {
+					console.log(currentElement);
+				},
+			});
+			const ac_container = document.querySelector(".accordion-container");
+			const loader = document.querySelector(".loader");
+			const container = document.querySelector(".container");
+			const help_container = document.querySelector(".help-container");
+			const help_card_body = document.querySelector(".help-card-body");
+			const name = document.querySelector(".name p");
+			const region = document.querySelector(".region p");
+			const country = document.querySelector(".country p");
+			const curr_temp = document.querySelector(".curr_temp p");
+			document
+				.querySelector(".close_btn")
+				.addEventListener("click", () => {
+					container.classList.remove("active");
+					ac_container.innerHTML = "";
+				});
+			document
+				.querySelector(".help_close_btn")
+				.addEventListener("click", () => {
+					help_container.classList.remove("active");
+				});
+			document
+				.querySelector("#back_btn")
+				.addEventListener("click", () => (window.location.href = "/"));
+			document
+				.querySelector("#help_btn")
+				.addEventListener("click", () => {
+					help_container.classList.toggle("active");
+					help_card_body.innerHTML = `<p style='font-size: 14px; padding:10px;'>
+						Drag the destination pointer and get the safest path with sufficient food points.
+						<br/><br/>
+						Click on the path to get the information and survival hacks for that location.
+					</p>`;
+				});
+
+			async function getWeatherInfo(lat, lng) {
+				loader.classList.add("active");
+				const apiUrl = `http://api.weatherapi.com/v1/forecast.json?key=ce4c4ee868f74afebb965936222711&q=${lat}, ${lng}&days=5&aqi=yes&alerts=yes`;
+				const res = await fetch(apiUrl);
+				const data = await res.json();
+				const forecast = data.forecast.forecastday.map((item) => {
+					let survival;
+					if (item.day.daily_will_it_rain) {
+						survival = `
+						<div class='survival_box'>
+							<span>Survive the Rain!!</span>
+							<h2 class='survival_sec_title'>Survival Kit</h2>
+							<ol>
+								<li>Carry water and food.</li>
+								<li>Battery-powered or hand crank radio and a NOAA Weather Radio with tone alert	</li>
+								<li>Flashlight, First aid kit, Extra batteries, Whistle (to signal for help), Dust mask (to help filter contaminated air).</li>
+								<li>Moist towelettes, garbage bags and plastic ties (for personal sanitation)</li>
+								<li>Water proof bags and shoes.</li>
+							</ol>
+							<h2>How to survive</h2>
+							<ol>
+								<li>Keep Extra clothes</li>
+								<li>Stay hydrated</li>
+								<li>Dress in layers. Sometimes chill air could cause seriuos problems.</li>
+								<li>Use Waterproof shoes, slippers and plastic bags or zip locks</li>
+								<li>Carry Germ killers</li>
+								<li>Avoid getting wet or keep yourself dry.</li>
+							</ol>
+							</div>
+						`;
+					} else if (32 < item.day.avgtemp_c < 40) {
+						survival = `
+						<div class='survival_box'>
+							<span>Danger of heat cramps are more!!</span>
+							<h2 class='survival_sec_title'>Survival Kit</h2>
+							<ol>
+								<li>Carry water and food.</li>
+								<li>Battery-powered or hand crank radio and a NOAA Weather Radio with tone alert	</li>
+								<li>Flashlight, First aid kit, Extra batteries, Whistle (to signal for help), Dust mask (to help filter contaminated air).</li>
+								<li>Moist towelettes, garbage bags and plastic ties (for personal sanitation)</li>
+								<li>Water proof bags and shoes.</li>
+							</ol>
+							<h2>How to survive</h2>
+							<ol>
+								<li>Wear a cap or a hat and cover your ears and face. Expose less of your body to avoid sun stroke.</li>
+								<li>Drink a lot of water. Take ORS or any other isotonic liquid to replenish loss of salts</li>
+								<li>Don't remain empty stomach.</li>
+								<li>Wear loose-fitting, lightweight, light-colored clothing</li>
+								<li>Avoid drinks with caffeine. Limit intake of alcoholic beverages</li>
+							</ol>
+							<h2>Treatment for heat cramps</h2>
+							<ol>
+								<li>Rest briefly and cool down.</li>
+								<li>Drink clear juice or an electrolyte-containing sports drink.</li>
+								<li>Practice gentle, range-of-motion stretching and gentle massage of the affected muscle group.</li>
+								<li>Don't resume strenuous activity for several hours or longer after heat cramps go away</li>
+								<li>Seek medical attention (if possible) if your cramps don't go away within one hour or so</li>
+							</ol>
+							</div>
+						`;
+					} else if (40 < item.day.avgtemp_c < 54) {
+						survival = `
+						<div class='survival_box'>
+							<span>Danger of heat exhaustion are more!!</span>
+							<h2 class='survival_sec_title'>Survival Kit</h2>
+							<ol>
+								<li>Carry water and food.</li>
+								<li>Battery-powered or hand crank radio and a NOAA Weather Radio with tone alert	</li>
+								<li>Flashlight, First aid kit, Extra batteries, Whistle (to signal for help), Dust mask (to help filter contaminated air).</li>
+								<li>Moist towelettes, garbage bags and plastic ties (for personal sanitation)</li>
+								<li>Water proof bags and shoes.</li>
+							</ol>
+							<h2>How to survive</h2>
+							<ol>
+								<li>Wear a cap or a hat and cover your ears and face. Expose less of your body to avoid sun stroke.</li>
+								<li>Drink a lot of water. Take ORS or any other isotonic liquid to replenish loss of salts</li>
+								<li>Don't remain empty stomach.</li>
+								<li>Wear loose-fitting, lightweight, light-colored clothing</li>
+								<li>Avoid drinks with caffeine. Limit intake of alcoholic beverages</li>
+							</ol>
+							<h2>Treatment for heat exhaustion</h2>
+							<ol>
+								<li>Rest briefly and cool down. Immerse you in cold water</li>
+								<li>Drink clear juice or an electrolyte-containing sports drink.</li>
+								<li>Pack you with ice and cooling blankets.</li>
+								<li>Use evaporation cooling techniques.</li>
+								<li>Seek medical attention (if possible) if your cramps don't go away within one hour or so</li>
+							</ol>
+							</div>
+						`;
+					} else if (54 < item.day.avgtemp_c) {
+						survival = `
+						<div class='survival_box'>
+							<span>Danger of heat stroke are more!!</span>
+							<h2 class='survival_sec_title'>Survival Kit</h2>
+							<ol>
+								<li>Carry water and food.</li>
+								<li>Battery-powered or hand crank radio and a NOAA Weather Radio with tone alert	</li>
+								<li>Flashlight, First aid kit, Extra batteries, Whistle (to signal for help), Dust mask (to help filter contaminated air).</li>
+								<li>Moist towelettes, garbage bags and plastic ties (for personal sanitation)</li>
+								<li>Water proof bags and shoes.</li>
+							</ol>
+							<h2>How to survive</h2>
+							<ol>
+								<li>Wear a cap or a hat and cover your ears and face. Expose less of your body to avoid sun stroke.</li>
+								<li>Drink a lot of water. Take ORS or any other isotonic liquid to replenish loss of salts</li>
+								<li>Don't remain empty stomach.</li>
+								<li>Wear loose-fitting, lightweight, light-colored clothing</li>
+								<li>Avoid drinks with caffeine. Limit intake of alcoholic beverages</li>
+							</ol>
+							<h2>Treatment for heat exhaustion</h2>
+							<ol>
+								<li>Rest briefly and cool down. Immerse you in cold water</li>
+								<li>Drink clear juice or an electrolyte-containing sports drink.</li>
+								<li>Pack you with ice and cooling blankets.</li>
+								<li>Use evaporation cooling techniques.</li>
+								<li>Seek medical attention (if possible) if your cramps don't go away within one hour or so</li>
+							</ol>
+							</div>
+						`;
+					} else if (item.day.avgtemp_c < 19) {
+						survival = `
+						<div class='survival_box'>
+							<span>Slight Cold!!</span>
+							<h2 class='survival_sec_title'>Survival Kit</h2>
+							<ol>
+								<li>Carry water and food.</li>
+								<li>Battery-powered or hand crank radio and a NOAA Weather Radio with tone alert	</li>
+								<li>Flashlight, First aid kit, Extra batteries, Whistle (to signal for help), Dust mask (to help filter contaminated air).</li>
+								<li>Moist towelettes, garbage bags and plastic ties (for personal sanitation)</li>
+								<li>Water proof bags and shoes.</li>
+							</ol>
+							<h2>How to survive</h2>
+							<ol>
+								<li>Wear full sleeves clothes. Cover your full body.</li>
+								<li>Stay hydrated</li>
+								<li>Avoid cold foods.</li>
+								<li>Avoid sweating and stay dry</li>
+								<li>Don't remain empty stomach.</li>
+							</ol>
+							</div>
+						`;
+					} else if (item.day.avgtemp_c < 0) {
+						survival = `
+						<div class='survival_box'>
+							<span>Hypothermia and frostbite are the real dangers!!</span>
+							<h2 class='survival_sec_title'>Survival Kit</h2>
+							<ol>
+								<li>Carry water and food.</li>
+								<li>Battery-powered or hand crank radio and a NOAA Weather Radio with tone alert	</li>
+								<li>Flashlight, First aid kit, Extra batteries, Whistle (to signal for help), Dust mask (to help filter contaminated air).</li>
+								<li>Moist towelettes, garbage bags and plastic ties (for personal sanitation)</li>
+								<li>Water proof bags and shoes.</li>
+							</ol>
+							<h2>How to survive</h2>
+							<ol>
+								<li>Protect your body heat. Protect it, trap it, and treat it like the precious resource it is.</li>
+								<li>Stay hydrated</li>
+								<li>Dress in layers. The air trapped between each layer holds your body heat, like your own personal hot tub. Plus, layers give you better control over regulating body heat so you can avoid dangerous sweating.</li>
+								<li>Avoid sweating and stay dry</li>
+								<li>Avoid eating snow. You lose a lot of core heat by melting snow inside your body. Melt it outside your body instead.</li>
+								<li>Wear water proof shoes and clothes (if possible).</li>
+								<li>Use od quilts as curtains to help keep the heat inside your tent. Or tinfoil your tent to keep it warm.</li>
+							</ol>
+							</div>
+						`;
+					} else {
+						survival = `
+						<div class='survival_box'>
+							<span>Hypothermia and frostbite are the real dangers!!</span>
+							<h2 class='survival_sec_title'>Survival Kit</h2>
+							<ol>
+								<li>Carry water and food.</li>
+								<li>Battery-powered or hand crank radio and a NOAA Weather Radio with tone alert	</li>
+								<li>Flashlight, First aid kit, Extra batteries, Whistle (to signal for help), Dust mask (to help filter contaminated air).</li>
+								<li>Moist towelettes, garbage bags and plastic ties (for personal sanitation)</li>
+								<li>Water proof bags and shoes.</li>
+							</ol>
+							</div>
+						`;
+					}
+
+					const str = `
+						<div class="ac">
+							<h2 class="ac-header">
+								<button type="button" class="ac-trigger">
+									${item.date} Information
+								</button>
+							</h2>
+							<div class="ac-panel">
+								<div class="detail-box">
+									<div class="detail-item">
+										<label>Max Temp</label>
+										<p>${item.day.maxtemp_c} C</p>
+									</div>
+									<div class="detail-item">
+										<label>Min Temp</label>
+										<p>${item.day.mintemp_c} C</p>
+									</div>
+									<div class="detail-item">
+										<label>Avg Temp</label>
+										<p>${item.day.avgtemp_c} C</p>
+									</div>
+									<div class="detail-item">
+										<label>Avg Humidity</label>
+										<p>${item.day.avghumidity}%</p>
+									</div>
+									<div class="detail-item">
+										<label>Chance of Rain</label>
+										<p>${item.day.daily_chance_of_rain}%</p>
+									</div>
+									<div class="detail-item">
+										<label>Status</label>
+										<p>${item.day.condition.text} <img src='${item.day.condition.icon}' /> </p>
+									</div>
+									<div class="detail-item" style="min-width: 100%">
+										<label>Survival</label>
+										${survival}
+									</div>
+								</div>
+							</div>
+						</div>
+					`;
+					ac_container.innerHTML += str;
+					loader.classList.remove("active");
+
+					return {
+						date: item.date,
+						maxtemp_c: item.day.maxtemp_c,
+						mintemp_c: item.day.mintemp_c,
+						avgtemp_c: item.day.avgtemp_c,
+						avghumidity: item.day.avghumidity,
+						willRain: item.day.daily_will_it_rain,
+						chanceOfRain: item.day.daily_chance_of_rain,
+						willSnow: item.day.daily_will_it_snow,
+						changeOfSnow: item.day.daily_chance_of_snow,
+						condition: {
+							text: item.day.condition.text,
+							icon: item.day.condition.icon,
+						},
+						survival,
+					};
+				});
+				name.innerHTML = data.location.name;
+				region.innerHTML = data.location.region;
+				country.innerHTML = data.location.country;
+				curr_temp.innerHTML = data.current.temp_c + " C";
+
+				return {
+					location: data.location,
+					forecast,
+					alerts: data.alerts,
+				};
+			}
+		</script>
+		<script src="utils/map.js"></script>
+	</body>
+</html>
+
+<!-- isInside(
+								circle_center.x,
+								circle_center.y,
+								rad,
+								item.lng,
+								item.lat
+							) &&
+isInside(
+								circle_center.x,
+								circle_center.y,
+								rad,
+								item.lng,
+								item.lat
+							) && -->
