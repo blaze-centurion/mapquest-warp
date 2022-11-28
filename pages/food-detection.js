@@ -260,11 +260,13 @@ const FoodDetection = () => {
 							</a>
 						</Text>
 						<Text mt="5px" fontSize="13px" color="whiteAlpha.700">
-							{data.suggestions[0].plant_details.wiki_description.value.slice(
-								0,
-								200
-							)}
-							...
+							{data.suggestions[0].plant_details.wiki_description.value.length < 200 ? 
+								data.suggestions[0].plant_details.wiki_description.value :
+								data.suggestions[0].plant_details.wiki_description.value.slice(
+									0,
+									200
+								) + "..."}
+							
 						</Text>
 					</Box>
 				</>
@@ -274,7 +276,3 @@ const FoodDetection = () => {
 };
 
 export default FoodDetection;
-
-// 1. Onwardly
-// 2. MapQuest
-// 2. Linkable
