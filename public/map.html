@@ -18,6 +18,7 @@
 		/>
 
 		<script src="https://unpkg.com/accordion-js@3.3.2/dist/accordion.min.js"></script>
+		<script src="https://js.pusher.com/7.2/pusher.min.js"></script>
 
 		<style>
 			#map {
@@ -35,33 +36,60 @@
 				margin: 0;
 				padding: 0;
 			}
-			#curr_loc_btn {
-				position: absolute;
-				bottom: 10px;
-				right: 10px;
+			.bottom_btn {
 				background-color: transparent;
 				border: none;
 				outline: none;
 				cursor: pointer;
 			}
-			#curr_loc_btn img {
-				width: 25px;
-				height: 25px;
+			#curr_loc_btn {
+				position: absolute;
+				bottom: 10px;
+				right: 10px;
+			}
+			.bottom_btn img {
+				width: 27px;
+				height: 27px;
 				filter: invert(1);
 			}
 			#help_btn {
 				position: absolute;
 				bottom: 45px;
-				right: 10px;
-				background-color: transparent;
-				border: none;
-				outline: none;
-				cursor: pointer;
+				right: 11px;
 			}
-			#help_btn img {
-				width: 25px;
-				height: 25px;
-				filter: invert(1);
+			#marker_btn {
+				position: absolute;
+				bottom: 85px;
+				right: 10px;
+				border: 1px solid #fff;
+				border-radius: 50%;
+				width: 30px;
+				height: 30px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			#marker_btn img {
+				width: 20px;
+				height: 20px;
+				filter: invert(0);
+			}
+			#emergency_btn {
+				position: absolute;
+				bottom: 124px;
+				right: 10px;
+				border: 1px solid #fff;
+				border-radius: 50%;
+				width: 30px;
+				height: 30px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			#emergency_btn img {
+				width: 20px;
+				height: 20px;
+				filter: invert(0);
 			}
 			.container {
 				position: absolute;
@@ -196,16 +224,67 @@
 			.loader.active::before {
 				display: block;
 			}
+			.add_marker_container .card-body {
+				padding: 1rem 1rem;
+				padding-bottom: 2.5rem;
+			}
+			.add_marker_container .card {
+				height: max-content;
+			}
+
+			.add_marker_container .form-group {
+				padding: 1rem;
+				width: 100%;
+				position: relative;
+				margin: 10px 0;
+			}
+			.add_marker_container .form-group label {
+				position: absolute;
+				top: -10px;
+				left: 10px;
+				font-size: 12px;
+				opacity: 0.7;
+			}
+			.add_marker_container .form-group select,
+			.add_marker_container .form-group textarea {
+				height: 40px;
+				width: 100%;
+				max-width: 100%;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+			}
+			.add_marker_container .form-group textarea {
+				min-height: 100px;
+				max-height: 250px;
+				padding: 10px;
+			}
+			.marker_add_btn {
+				background: #3498db;
+				margin: -10px 1rem;
+				border: none;
+				outline: none;
+				padding: 10px;
+				width: 90%;
+				border-radius: 5px;
+				color: #fff;
+				cursor: pointer;
+			}
 		</style>
 	</head>
 	<body>
 		<div class="loader"></div>
 		<div id="map"></div>
-		<button id="curr_loc_btn">
+		<button id="curr_loc_btn" class="bottom_btn">
 			<img src="crosshair.png" />
 		</button>
-		<button id="help_btn">
+		<button id="help_btn" class="bottom_btn">
 			<img src="question.png" />
+		</button>
+		<button id="marker_btn" class="bottom_btn">
+			<img src="marker.png" />
+		</button>
+		<button id="emergency_btn" class="bottom_btn">
+			<img src="emergency.png" />
 		</button>
 		<button id="back_btn">
 			<img src="back.png" />
@@ -252,6 +331,31 @@
 				<div class="card-body help-card-body"></div>
 			</div>
 		</div>
+		<div class="add_marker_container container">
+			<div class="card">
+				<div class="card-header">
+					<p>Add Suggestion Marker</p>
+					<img src="close.png" alt="" class="marker_close_btn" />
+				</div>
+				<div class="card-body">
+					<div class="form-group">
+						<label for="">Marker Type</label>
+						<select id="marker_type_select">
+							<option value="warning">Warning Marker</option>
+							<option value="food">Food Marker</option>
+							<option value="both">
+								Marker for food and warning
+							</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="">Description</label>
+						<textarea id="marker_desc"></textarea>
+					</div>
+					<button class="marker_add_btn">Add</button>
+				</div>
+			</div>
+		</div>
 
 		<script
 			src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAFK2tHR6268jRXCcg5u5h0AOMQn-63giY&callback=initMap"
@@ -265,10 +369,14 @@
 					console.log(currentElement);
 				},
 			});
+			const SERVER_NAME = `http://localhost:4000/api/v1`;
 			const ac_container = document.querySelector(".accordion-container");
 			const loader = document.querySelector(".loader");
 			const container = document.querySelector(".container");
 			const help_container = document.querySelector(".help-container");
+			const add_marker_container = document.querySelector(
+				".add_marker_container"
+			);
 			const help_card_body = document.querySelector(".help-card-body");
 			const name = document.querySelector(".name p");
 			const region = document.querySelector(".region p");
@@ -286,6 +394,11 @@
 					help_container.classList.remove("active");
 				});
 			document
+				.querySelector(".marker_close_btn")
+				.addEventListener("click", () => {
+					add_marker_container.classList.remove("active");
+				});
+			document
 				.querySelector("#back_btn")
 				.addEventListener("click", () => (window.location.href = "/"));
 			document
@@ -298,6 +411,91 @@
 						Click on the path to get the information and survival tips for that location.
 					</p>`;
 				});
+
+			document
+				.querySelector("#marker_btn")
+				.addEventListener("click", () => {
+					const img = document.querySelector("#marker_btn img");
+					if (img.getAttribute("src") === "marker.png") {
+						img.setAttribute("src", "close.png");
+					} else {
+						img.setAttribute("src", "marker.png");
+					}
+				});
+			document
+				.querySelector("#emergency_btn")
+				.addEventListener("click", () => {
+					if (window.localStorage.getItem("alertId")) {
+						removeAlert();
+					} else {
+						if (navigator.geolocation) {
+							var geoLoc = navigator.geolocation;
+							geoLoc.getCurrentPosition(
+								(pos) => {
+									issueAlert(
+										pos.coords.latitude,
+										pos.coords.longitude
+									);
+								},
+								() => {
+									window.alert("Something went wrong!");
+								}
+							);
+						}
+					}
+				});
+
+			if (window.localStorage.getItem("alertId")) {
+				document
+					.querySelector("#emergency_btn img")
+					.setAttribute("src", "close.png");
+			}
+
+			async function issueAlert(lat, lng) {
+				try {
+					const res = await fetch(`${SERVER_NAME}/sendAlert`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							lat,
+							lng,
+						}),
+					});
+					const data = await res.json();
+					window.localStorage.setItem("alertId", data.alertId);
+					document
+						.querySelector("#emergency_btn img")
+						.setAttribute("src", "close.png");
+					window.alert("Issued Successfully!");
+				} catch (err) {
+					window.alert("Something went wrong!");
+					console.log(err);
+				}
+			}
+			async function removeAlert(lat, lng) {
+				try {
+					const res = await fetch(`${SERVER_NAME}/removeAlert`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							alertId: window.localStorage.getItem("alertId"),
+						}),
+					});
+					const data = await res.json();
+					window.localStorage.removeItem("alertId");
+					document
+						.querySelector("#emergency_btn img")
+						.setAttribute("src", "emergency.png");
+					window.alert("Deleted Successfully!");
+				} catch (err) {
+					window.alert("Something went wrong!");
+					console.log(err);
+				}
+			}
 
 			async function getWeatherInfo(lat, lng) {
 				loader.classList.add("active");
@@ -329,7 +527,10 @@
 							</ol>
 							</div>
 						`;
-					} else if (32 < item.day.avgtemp_c < 40) {
+					} else if (
+						32 < item.day.avgtemp_c &&
+						item.day.avgtemp_c < 40
+					) {
 						survival = `
 						<div class='survival_box'>
 							<span>Danger of heat cramps are more!!</span>
@@ -359,7 +560,10 @@
 							</ol>
 							</div>
 						`;
-					} else if (40 < item.day.avgtemp_c < 54) {
+					} else if (
+						40 < item.day.avgtemp_c &&
+						item.day.avgtemp_c < 54
+					) {
 						survival = `
 						<div class='survival_box'>
 							<span>Danger of heat exhaustion are more!!</span>
@@ -419,7 +623,10 @@
 							</ol>
 							</div>
 						`;
-					} else if (item.day.avgtemp_c < 19) {
+					} else if (
+						item.day.avgtemp_c < 18 &&
+						item.day.avgtemp_c > 0
+					) {
 						survival = `
 						<div class='survival_box'>
 							<span>Slight Cold!!</span>
@@ -468,7 +675,7 @@
 					} else {
 						survival = `
 						<div class='survival_box'>
-							<span>Hypothermia and frostbite are the real dangers!!</span>
+							<span>Normal Temperature!!</span>
 							<h2 class='survival_sec_title'>Survival Kit</h2>
 							<ol>
 								<li>Carry water and food.</li>
