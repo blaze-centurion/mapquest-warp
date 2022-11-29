@@ -165,7 +165,7 @@ const FoodDetection = () => {
 					borderColor="rgb(52 152 219)"
 					fontWeight="500"
 				>
-					Let's Go
+					Let&apos;s Go
 				</Button>
 			</Box>
 			{data && (
@@ -267,6 +267,7 @@ const FoodDetection = () => {
 										.wiki_description.citation
 								}
 								target="_blank"
+								rel="noreferrer"
 							>
 								{data.suggestions[0].plant_name}
 							</a>
